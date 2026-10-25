@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Junior Web Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: slim hero + topic strip, then a two-pane workbench (big editor | live output) with the checker under the editor */
+:root{
+  --paper:#F3F6FB; --card:#FFFFFF; --ink:#16203B; --muted:#5A6482; --line:#DCE3EE;
+  --tomato:#FF6347; --teal:#0F9D8A; --sun:#F5B700; --sky:#2F6FDB;
+  --ok:#0E8A6A; --ok-soft:#DDF5EC; --bad:#C62828; --bad-soft:#FDE7E7;
+  --code-bg:#151C36; --code-fg:#E8ECF8; --gutter:#0F1530; --gutter-fg:#5E6A92;
+  --display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --body:"Nunito","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",Consolas,"Courier New",monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5}
+.wrap{max-width:1400px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0;text-wrap:balance}
+p{margin:0}
+button{font-family:var(--body)}
+button:focus-visible,textarea:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+
+/* hero */
+.hero{background:var(--ink);color:#fff}
+.hero .wrap{display:flex;gap:24px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding-block:22px}
+.hero h1{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800}
+.hero h1 .tag{font-family:var(--mono);font-size:.55em;color:#7FD3FF;vertical-align:middle;margin-right:8px}
+.hero h1 .hl{color:var(--tomato)}
+.hero p{color:#C9D2EA;max-width:62ch;margin-top:6px;font-size:1.05rem}
+.badge{font:800 .85rem var(--body);letter-spacing:.12em;text-transform:uppercase;background:#26305A;color:#FFC66D;padding:6px 12px;border-radius:999px;white-space:nowrap}
+
+main{padding-block:22px 48px;display:grid;gap:20px}
+.eyebrow{font:800 .78rem var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--tomato)}
+
+/* topics */
+.topics{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+@media (max-width:1100px){.topics{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.topics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.topic{display:grid;gap:4px;text-align:left;border:2px solid var(--line);background:var(--card);border-radius:14px;padding:14px;cursor:pointer;color:var(--ink);transition:transform .12s,border-color .12s,box-shadow .12s}
+.topic:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(22,32,59,.08)}
+.topic .num{font:800 .8rem var(--body);color:var(--muted)}
+.topic .name{font:800 1.12rem var(--display);line-height:1.2}
+.topic .icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font:800 1rem var(--mono);color:#fff}
+.topic[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 3px var(--ink) inset}
+.topic.done .num::after{content:" · checked ✓";color:var(--ok)}
+
+/* brief */
+.brief{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px}
+@media (max-width:900px){.brief{grid-template-columns:minmax(0,1fr)}}
+.brief h2{font-size:1.6rem}
+.brief .say{color:var(--muted);margin-top:6px}
+.reqs{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.reqs li{display:flex;gap:10px;align-items:flex-start;font-weight:700;font-size:.98rem}
+.reqs li::before{content:"";flex:none;width:18px;height:18px;margin-top:3px;border-radius:5px;border:2px solid var(--line);background:#fff}
+.reqs li.met::before{background:var(--ok);border-color:var(--ok)}
+.reqs li.miss{color:var(--bad)}
+.reqs li.miss::before{border-color:var(--bad)}
+.reqs code,.say code{font-family:var(--mono);font-size:.88em;background:#EEF2F9;padding:0 5px;border-radius:5px}
+
+/* workbench */
+.bench{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.bench{grid-template-columns:minmax(0,1fr)}}
+.pane{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--card);display:grid;grid-template-rows:auto 1fr;min-width:0}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 14px;font:800 .78rem var(--body);letter-spacing:.08em;text-transform:uppercase}
+.editor .bar{background:#0D1328;color:#AEB8D6}
+.output .bar{background:#E7EDF7;color:var(--muted)}
+.dots{display:flex;gap:6px}.dots i{width:11px;height:11px;border-radius:50%;background:#FF6B6B}.dots i:nth-child(2){background:#FFC93C}.dots i:nth-child(3){background:#2EC4B6}
+.codebox{display:grid;grid-template-columns:auto minmax(0,1fr);background:var(--code-bg);height:min(68vh,640px);min-height:380px}
+.gutter{background:var(--gutter);color:var(--gutter-fg);font:500 16px/1.65 var(--mono);padding:14px 10px 14px 14px;text-align:right;overflow:hidden;user-select:none;white-space:pre}
+.gutter .err{color:#FF8A80;font-weight:700}
+textarea.code{border:0;margin:0;resize:none;width:100%;height:100%;background:transparent;color:var(--code-fg);font:500 16px/1.65 var(--mono);padding:14px;tab-size:2;white-space:pre;overflow:auto;caret-color:var(--tomato)}
+iframe.out{border:0;width:100%;height:min(68vh,640px);min-height:380px;background:#fff;display:block}
+
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.btn{font:800 1.05rem var(--body);border:0;border-radius:12px;padding:13px 22px;cursor:pointer;background:var(--ink);color:#fff}
+.btn.big{background:var(--tomato);font-size:1.2rem;padding:15px 30px;box-shadow:0 5px 0 #C8432C}
+.btn.big:active{transform:translateY(3px);box-shadow:0 2px 0 #C8432C}
+.btn.ghost{background:#fff;color:var(--ink);border:2px solid var(--line)}
+.hint{color:var(--muted);font-size:.92rem}
+
+.result{margin-top:14px;border-radius:12px;padding:14px 16px;display:grid;gap:8px}
+.result.bad{background:var(--bad-soft);border:2px solid #F2B8B5}
+.result.ok{background:var(--ok-soft);border:2px solid #A9DEC9}
+.result h3{font-size:1.2rem}
+.result.bad h3{color:var(--bad)}
+.result.ok h3{color:var(--ok)}
+.errs{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.errs li{color:var(--bad);font-weight:700;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:baseline}
+.errs .ln{font:700 .8rem var(--mono);background:var(--bad);color:#fff;border-radius:6px;padding:2px 7px;white-space:nowrap;cursor:pointer}
+.errs code{font-family:var(--mono);background:#fff;border-radius:5px;padding:0 5px;color:var(--bad)}
+.foot{color:var(--muted);font-size:.85rem;text-align:center;padding-block:4px 20px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <h1><span class="tag">&lt;/&gt;</span>Junior Web Developers, <span class="hl">let's code!</span></h1>
+      <p>Every website you love started with a blank page and a few tags. Pick a topic, type your own HTML, then press <b>Check my code</b> to see your web page come alive and to find and fix your mistakes. You've got this!</p>
+    </div>
+    <span class="badge">Grade 6 · HTML Practice</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <span class="eyebrow">Step 1 · Choose your website topic</span>
+    <div class="topics" id="topics" role="group" aria-label="Website topics" style="margin-top:10px"></div>
+  </section>
+
+  <section class="brief" id="brief" aria-live="polite">
+    <div>
+      <span class="eyebrow" id="bNum">Topic 1</span>
+      <h2 id="bTitle"></h2>
+      <p class="say" id="bSay"></p>
+    </div>
+    <div>
+      <span class="eyebrow">Your page must have</span>
+      <ul class="reqs" id="reqs" style="margin-top:8px"></ul>
+    </div>
+  </section>
+
+  <section class="bench">
+    <div>
+      <div class="pane editor">
+        <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span id="fileName">index.html · type your code here</span></div>
+        <div class="codebox">
+          <div class="gutter" id="gutter" aria-hidden="true">1</div>
+          <textarea class="code" id="editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="HTML code editor"></textarea>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn big" id="checkBtn">Check my code</button>
+        <button class="btn ghost" id="resetBtn">Start again</button>
+        <span class="hint">Press <b>Check my code</b> to see your web page on the right.</span>
+      </div>
+      <div class="result" id="result" hidden></div>
+    </div>
+    <div class="pane output">
+      <div class="bar"><span>Output · your web page</span><span>shows after Check my code</span></div>
+      <iframe class="out" id="out" title="Your web page" sandbox=""></iframe>
+    </div>
+  </section>
+</main>
+<p class="foot">Teacher-designed for Grade 6 · Sharjah Indian School, Juwaiza</p>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- topics ---------- */
+const COMMON = [
+  {t:'A <code>&lt;title&gt;</code> for your page', f:d => d.title.trim().length > 0},
+  {t:'A main heading <code>&lt;h1&gt;</code>', f:d => !!d.querySelector('body h1')},
+];
+const STYLE = [
+  {t:'Text colour with <code>style="color:…;"</code>', f:d => [...d.body.querySelectorAll('[style]')].some(e => e.style.color)},
+  {t:'Background colour with <code>style="background-color:…;"</code>', f:d => [...d.querySelectorAll('[style]')].some(e => e.style.backgroundColor)},
+];
+const pCount = n => ({t:`At least ${n} paragraphs <code>&lt;p&gt;</code>`, f:d => d.querySelectorAll('body p').length >= n});
+const TOPICS = [
+  {name:'My School', icon:'SIS', col:'#2F6FDB',
+   say:'Make a web page about Sharjah Indian School. Tell visitors about your classes, your teachers and your favourite school event.',
+   reqs:[...COMMON, pCount(2), {t:'A sub-heading <code>&lt;h2&gt;</code>', f:d => !!d.querySelector('body h2')}, {t:'A line <code>&lt;hr&gt;</code> between sections', f:d => !!d.querySelector('body hr')}, ...STYLE]},
+  {name:'Proud of the UAE', icon:'UAE', col:'#C62828',
+   say:'Celebrate UAE National Day. Write about the UAE flag, a famous place like Burj Khalifa, and why you love living here.',
+   reqs:[...COMMON, pCount(2), {t:'A line break <code>&lt;br&gt;</code>', f:d => !!d.querySelector('body br')}, ...STYLE]},
+  {name:'My Favourite Hobby', icon:'★', col:'#0F9D8A',
+   say:'Tell the world about your hobby: what it is, when you started and why you enjoy it. Make the heading stand out!',
+   reqs:[...COMMON, pCount(2), {t:'One word in <b>bold</b> with <code>&lt;b&gt;</code>', f:d => !!d.querySelector('body b, body strong')}, ...STYLE]},
+  {name:'A Day Trip in the UAE', icon:'✈', col:'#E08A00',
+   say:'Plan a day trip to a place in the UAE: Sharjah Aquarium, Al Noor Island or Hatta. Describe the morning, afternoon and evening.',
+   reqs:[...COMMON, {t:'Three sub-headings <code>&lt;h2&gt;</code> (Morning, Afternoon, Evening)', f:d => d.querySelectorAll('body h2').length >= 3}, pCount(3), ...STYLE]},
+  {name:'Healthy Food', icon:'🍎', col:'#3E9B3E',
+   say:'Make a page about healthy eating. Name your favourite healthy foods and explain why they are good for you.',
+   reqs:[...COMMON, pCount(2), {t:'One word underlined with <code>&lt;u&gt;</code>', f:d => !!d.querySelector('body u')}, {t:'A line <code>&lt;hr&gt;</code>', f:d => !!d.querySelector('body hr')}, ...STYLE]},
+  {name:'Save Our Planet', icon:'♻', col:'#1E7F5C',
+   say:'Teach visitors how to protect the Earth: saving water, recycling and planting trees. Give three tips in three paragraphs.',
+   reqs:[...COMMON, pCount(3), {t:'One word in italics with <code>&lt;i&gt;</code>', f:d => !!d.querySelector('body i, body em')}, ...STYLE]}
+];
+const SKELETON = '<!DOCTYPE html>\n<html>\n<head>\n  <title></title>\n</head>\n<body>\n\n</body>\n</html>\n';
+
+let cur = 0;
+const KEY = i => 'jws-draft-' + i;
+const load = i => { try { return localStorage.getItem(KEY(i)); } catch(e){ return null; } };
+const store = (i, v) => { try { localStorage.setItem(KEY(i), v); } catch(e){} };
+const checked = new Set();
+
+$('topics').innerHTML = TOPICS.map((t,i) => `<button class="topic" data-i="${i}" aria-pressed="${i===0}">
+  <span class="icon" style="background:${t.col}">${esc(t.icon)}</span><span class="num">Topic ${i+1}</span><span class="name">${esc(t.name)}</span></button>`).join('');
+$('topics').addEventListener('click', e => { const b = e.target.closest('.topic'); if (b) pick(+b.dataset.i); });
+
+function pick(i){
+  store(cur, $('editor').value);
+  cur = i;
+  document.querySelectorAll('.topic').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.i === i)));
+  const T = TOPICS[i];
+  $('bNum').textContent = `Topic ${i+1} of ${TOPICS.length}`;
+  $('bTitle').textContent = T.name;
+  $('bSay').textContent = T.say;
+  $('fileName').textContent = T.name.toLowerCase().replace(/[^a-z]+/g,'-').replace(/^-|-$/g,'') + '.html · type your code here';
+  $('editor').value = load(i) || SKELETON;
+  $('result').hidden = true;
+  update(); drawReqs(null); blankOut();
+  // stay on the topic description – do not jump to the editor
+}
+
+/* ---------- live output + line numbers ---------- */
+let t1;
+function update(){
+  const v = $('editor').value;
+  const n = v.split('\n').length;
+  $('gutter').innerHTML = Array.from({length:n}, (_,k) => k+1).join('\n');
+  clearTimeout(t1); t1 = setTimeout(() => store(cur, v), 400);
+}
+$('editor').addEventListener('input', update);
+$('editor').addEventListener('scroll', () => { $('gutter').scrollTop = $('editor').scrollTop; });
+$('editor').addEventListener('keydown', e => {
+  if (e.key === 'Tab'){ e.preventDefault(); const t = e.target, s = t.selectionStart; t.setRangeText('  ', s, t.selectionEnd, 'end'); update(); }
+});
+$('resetBtn').onclick = () => { $('editor').value = SKELETON; $('result').hidden = true; update(); drawReqs(null); blankOut(); $('editor').focus(); };
+function blankOut(){ $('out').srcdoc = '<body style="margin:0;height:100vh;display:grid;place-items:center;font:600 18px Arial,sans-serif;color:#8A93AE;text-align:center;padding:24px;box-sizing:border-box">Type your HTML on the left,<br>then press <b style="color:#FF6347">&nbsp;Check my code&nbsp;</b> to see your web page here.</body>'; }
+
+/* ---------- checker ---------- */
+const CONTAINER = ['html','head','title','body','h1','h2','h3','h4','h5','h6','p','b','i','u','strong','em','center','div','span','ul','ol','li','a','font','marquee','sub','sup','small','big','table','tr','td','th','section','header','footer','nav','main','article'];
+const EMPTY = ['br','hr','img','meta','link','input','!doctype'];
+const KNOWN = new Set([...CONTAINER, ...EMPTY]);
+const PROPS = ['color','background-color','font-size','font-family','text-align','font-weight','font-style','text-decoration','border','padding','margin','width','height'];
+const lineOf = (src, idx) => src.slice(0, idx).split('\n').length;
+
+function checkCode(src){
+  const errs = [];
+  const add = (idx, msg) => errs.push({line: idx == null ? null : lineOf(src, idx), msg});
+  if (!src.trim()){ add(null, 'Your editor is empty. Press <b>Start again</b> to get the skeleton.'); return errs; }
+
+  if (!/^\s*<!doctype\s+html\s*>/i.test(src)) add(0, 'Start your page with <code>&lt;!DOCTYPE html&gt;</code> on the first line.');
+
+  // tags that never close with >
+  const re = /<\/?([a-z!][a-z0-9]*)?/gi; let m;
+  while ((m = re.exec(src))){
+    const rest = src.slice(m.index);
+    const close = rest.search(/>/), nextOpen = rest.slice(1).search(/</);
+    if (close === -1 || (nextOpen !== -1 && nextOpen + 1 < close)){ add(m.index, `This tag is not closed. Add <code>&gt;</code> at the end of <code>${esc(rest.slice(0, Math.min(18, nextOpen === -1 ? 18 : nextOpen + 1)).trim())}</code>`); }
+  }
+
+  // walk complete tags
+  const stack = [];
+  const tagRe = /<(\/?)([a-z!][a-z0-9]*)\b([^<>]*)>/gi;
+  while ((m = tagRe.exec(src))){
+    const closing = m[1] === '/', name = m[2].toLowerCase(), attrs = m[3], at = m.index;
+    if (name === '!doctype') continue;
+    if (!KNOWN.has(name)){ add(at, `<code>&lt;${esc(m[1]+m[2])}&gt;</code> is not an HTML tag. Check the spelling.`); continue; }
+    if (((attrs.match(/"/g) || []).length) % 2) add(at, `Close the quotes inside <code>&lt;${esc(name)} …&gt;</code>. Every value needs a <code>"</code> at the start and the end.`);
+    if (closing){
+      if (EMPTY.includes(name)){ add(at, `<code>&lt;${name}&gt;</code> is an empty tag. It does not need <code>&lt;/${name}&gt;</code>.`); continue; }
+      const k = stack.map(s => s.name).lastIndexOf(name);
+      if (k === -1){ add(at, `<code>&lt;/${name}&gt;</code> has no matching start tag <code>&lt;${name}&gt;</code>.`); continue; }
+      for (let j = stack.length - 1; j > k; j--) add(stack[j].at, `Close <code>&lt;${stack[j].name}&gt;</code> with <code>&lt;/${stack[j].name}&gt;</code> before <code>&lt;/${name}&gt;</code>.`);
+      stack.length = k;
+    } else {
+      if (attrs.trim()) styleLint(attrs, at, name, add);
+      if (CONTAINER.includes(name)) stack.push({name, at});
+    }
+  }
+  stack.forEach(s => add(s.at, `<code>&lt;${s.name}&gt;</code> is never closed. Add <code>&lt;/${s.name}&gt;</code> after its content.`));
+
+  // skeleton order
+  const low = src.toLowerCase();
+  ['html','head','title','body'].forEach(t => { if (!new RegExp('<' + t + '\\b').test(low)) add(null, `Your page is missing the <code>&lt;${t}&gt;</code> tag.`); });
+  const hEnd = low.indexOf('</head>'), bStart = low.search(/<body\b/);
+  if (hEnd !== -1 && bStart !== -1 && bStart < hEnd) add(bStart, '<code>&lt;body&gt;</code> must come after <code>&lt;/head&gt;</code>.');
+  const tStart = low.search(/<title\b/);
+  if (tStart !== -1 && bStart !== -1 && tStart > bStart) add(tStart, '<code>&lt;title&gt;</code> belongs inside <code>&lt;head&gt;</code>, not in the body.');
+  const htEnd = low.lastIndexOf('</html>');
+  if (htEnd !== -1 && low.slice(htEnd + 7).replace(/<!--[\s\S]*?-->/g,'').trim()) add(htEnd, 'Nothing should come after <code>&lt;/html&gt;</code>.');
+
+  errs.sort((a, b) => (a.line ?? 0) - (b.line ?? 0));
+  return errs;
+}
+function styleLint(attrs, at, tag, add){
+  if (/\bstyle\s*=(?!\s*["'])/i.test(attrs)) return add(at, `Put the style value inside double quotes: <code>style="color:red;"</code>`);
+  const sm = attrs.match(/\bstyle\s*=\s*(["'])([\s\S]*?)\1/i);
+  if (!sm) return;
+  const v = sm[2];
+  if (/colour/i.test(v)) return add(at, 'CSS uses the spelling <code>color</code>, not colour.');
+  if (/background\s+-?\s*color|backgroundcolor|background_color/i.test(v)) return add(at, 'Write <code>background-color</code> as one word with a hyphen.');
+  if (/[a-z-]+\s*=/i.test(v)) return add(at, 'Inside style, use a colon <code>:</code> not <code>=</code>. Example: <code>color:red;</code>');
+  v.split(';').map(x => x.trim()).filter(Boolean).forEach(dec => {
+    const c = dec.indexOf(':');
+    if (c === -1){ add(at, `Put a colon between the property and the value: <code>${esc(dec.replace(/\s+/,':'))}</code>`); return; }
+    const prop = dec.slice(0, c).trim().toLowerCase(), val = dec.slice(c + 1).trim();
+    if (!PROPS.includes(prop)){ add(at, `<code>${esc(prop)}</code> is not a property we use. Try <code>color</code> or <code>background-color</code>.`); return; }
+    if (!val){ add(at, `Give <code>${esc(prop)}</code> a value, like <code>${esc(prop)}:red;</code>`); return; }
+    if ((prop === 'color' || prop === 'background-color') && window.CSS && CSS.supports && !CSS.supports('color', val)) add(at, `<code>${esc(val)}</code> is not a colour name. Try red, blue, green, Tomato, gold…`);
+  });
+  if (/:[^;]+\s+[a-z-]+\s*:/i.test(v)) add(at, 'Separate two properties with a semicolon: <code>color:white; background-color:red;</code>');
+}
+
+function drawReqs(doc){
+  const T = TOPICS[cur];
+  $('reqs').innerHTML = T.reqs.map((r,k) => {
+    const met = doc ? !!r.f(doc) : null;
+    return `<li class="${met === true ? 'met' : met === false ? 'miss' : ''}">${r.t}</li>`;
+  }).join('');
+}
+$('checkBtn').onclick = () => {
+  const src = $('editor').value;
+  $('out').srcdoc = src;
+  const errs = checkCode(src);
+  const doc = new DOMParser().parseFromString(src, 'text/html');
+  drawReqs(doc);
+  const missing = TOPICS[cur].reqs.filter(r => !r.f(doc)).map(r => ({line:null, msg:'Still needed: ' + r.t}));
+  const all = [...errs, ...missing];
+  const box = $('result'); box.hidden = false;
+  document.querySelectorAll('.gutter .err').forEach(x => x.classList.remove('err'));
+  if (!all.length){
+    box.className = 'result ok';
+    box.innerHTML = `<h3>Brilliant! Your "${esc(TOPICS[cur].name)}" page has no errors.</h3><p>You are a real Junior Web Developer. Try another topic, or add more colours and paragraphs to this one.</p>`;
+    checked.add(cur); document.querySelector(`.topic[data-i="${cur}"]`).classList.add('done');
+    return;
+  }
+  box.className = 'result bad';
+  box.innerHTML = `<h3>${errs.length ? `Found ${errs.length} error${errs.length > 1 ? 's' : ''} to fix` : 'No code errors. Just a few things missing'}</h3>
+    <ul class="errs">${all.map(e => `<li>${e.line ? `<span class="ln" data-line="${e.line}">Line ${e.line}</span>` : '<span></span>'}<span>${e.msg}</span></li>`).join('')}</ul>`;
+  const lines = new Set(errs.filter(e => e.line).map(e => e.line));
+  $('gutter').innerHTML = $('editor').value.split('\n').map((_, k) => lines.has(k+1) ? `<span class="err">${k+1}</span>` : String(k+1)).join('\n');
+};
+$('result').addEventListener('click', e => {
+  const ln = e.target.closest('.ln'); if (!ln) return;
+  const n = +ln.dataset.line, ta = $('editor'), lines = ta.value.split('\n');
+  const start = lines.slice(0, n - 1).join('\n').length + (n > 1 ? 1 : 0);
+  ta.focus(); ta.setSelectionRange(start, start + lines[n - 1].length);
+  ta.scrollTop = Math.max(0, (n - 4) * 26.4);
+});
+
+pick(0);
+</script>
+</body>
+</html>
