@@ -105,7 +105,7 @@ iframe.out{border:0;width:100%;height:min(68vh,640px);min-height:380px;backgroun
   <div class="wrap">
     <div>
       <h1><span class="tag">&lt;/&gt;</span>Junior Web Developers, <span class="hl">let's code!</span></h1>
-      <p>Every website you love started with a blank page and a few tags. Pick a topic, type your own HTML, then press <b>Check my code</b> to see your web page come alive and to find and fix your mistakes. You've got this!</p>
+      <p>Every website you love started with a blank page and a few tags. Pick a topic, type your own HTML (no copy-paste!), then press <b>Check my code</b> to see your web page come alive and to find and fix your mistakes. You've got this!</p>
     </div>
     <span class="badge">Grade 6 · HTML Practice</span>
   </div>
@@ -223,6 +223,15 @@ function update(){
   clearTimeout(t1); t1 = setTimeout(() => store(cur, v), 400);
 }
 $('editor').addEventListener('input', update);
+/* paste is turned off so students type every line themselves */
+function noPaste(e){
+  e.preventDefault();
+  const box = $('result'); box.hidden = false; box.className = 'result bad';
+  box.innerHTML = '<h3>Paste is turned off</h3><p>Type the code yourself – that is how real web developers learn!</p>';
+}
+['paste','drop'].forEach(ev => $('editor').addEventListener(ev, noPaste));
+$('editor').addEventListener('beforeinput', e => { if (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop') noPaste(e); });
+$('editor').addEventListener('contextmenu', e => e.preventDefault());
 $('editor').addEventListener('scroll', () => { $('gutter').scrollTop = $('editor').scrollTop; });
 $('editor').addEventListener('keydown', e => {
   if (e.key === 'Tab'){ e.preventDefault(); const t = e.target, s = t.selectionStart; t.setRangeText('  ', s, t.selectionEnd, 'end'); update(); }
